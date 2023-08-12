@@ -41,7 +41,7 @@
 				{ 0x800E, { "8XYE", &c8::_8XYE, nullptr } }, { 0x800F, { "8XY0", &c8::_8XY0, nullptr } },
 			
 			{ 0x9000, { "9XY0", &c8::_9XY0, nullptr } }, { 0xA000, { "ANNN", &c8::_ANNN, nullptr } }, { 0xB000, { "BNNN", &c8::_BNNN, nullptr } }, { 0xC000, { "CXNN", &c8::_CXNN, nullptr } },
-			{0xD000, {"DXYN", &c8::_DXYN, nullptr}},
+			{ 0xD000, {"DXYN", &c8::_DXYN, nullptr} },
 			
 			{ 0xE000, { "", nullptr, &c8::resolveOpcodeE } }, 
 				{ 0xE001, { "EXA1", &c8::_EXA1, nullptr } }, { 0xE00E, { "EX9E", &c8::_EX9E, nullptr } },
@@ -229,8 +229,8 @@
 
 	void Chip8::setupOpcode(uint16_t opcode) {
 		o = opcode & 0xF000;
-		x = opcode & 0x0F00 >> 8;
-		y = opcode & 0x00F0 >> 4;
+		x = (opcode & 0x0F00) >> 8;
+		y = (opcode & 0x00F0) >> 4;
 		n = opcode & 0x000F;
 		nn = opcode & 0x00FF;
 		nnn = opcode & 0x0FFF;
@@ -377,43 +377,6 @@
 		registers[x] = getRandomNumber() & nn;
 	}
 
-	void Chip8::_DXYNB() {
-		bool collision = false;
-		uint8_t mask = 0x80;
-		uint8_t data;
-		registers[0xF] = 0;
-
-		for (int lineY = 0; lineY < n; lineY++) {
-			data = memory[counters[2] + lineY];
-
-			for (int lineX = 0; lineX < 8; lineX++) {
-				uint8_t posX = registers[x] + lineX;
-				uint8_t posY = registers[y] + lineY;
-
-				if ((data & mask) > 0) {
-					if (posX > 64) posX -= 64;
-					if (posX < 0) posX += 64;
-					if (posY > 32) posX -= 32;
-					if (posY < 0) posX -= 32;
-
-					uint8_t location = posX + (posY * 64);
-
-					screenData[location] = screenData[location] ^ 1;
-
-					screen->SetPixel({ posX, posY }, (screenData[location] == 1) ? olc::WHITE : olc::BLACK);
-
-					collision = !screenData[location];
-
-					if (collision) registers[0xF] = 1;
-				}
-
-				data <<= 1;
-			}
-		}
-
-		frameChanged = true;
-	}
-	
 	void Chip8::_DXYN() {
 		bool collision = false;
 		uint8_t mask = 0x80;
@@ -430,8 +393,8 @@
 				if ((data & mask) > 0) {
 					if (posX > 64) posX -= 64;
 					if (posX < 0) posX += 64;
-					if (posY > 32) posX -= 32;
-					if (posY < 0) posX -= 32;
+					if (posY > 32) posY -= 32;
+					if (posY < 0) posY -= 32;
 
 					olc::Pixel currentPixel = screen->GetPixel({ posX, posY });
 
@@ -489,7 +452,7 @@
 
 		if ((counters[2] + registers[x]) > 0xFFF) registers[0xF] = 1;
 
-		counters[2] = (counters[2] + registers[x]) % 0xF000;
+		counters[2] = ((counters[2] + registers[x]) % 0xF000);
 	}
 	
 	void Chip8::_FX29() {
@@ -504,8 +467,6 @@
 		memory[counters[2] + 2] = units;
 		memory[counters[2] + 1] = tens;
 		memory[counters[2]] = hundreds;
-
-		std::cout << "Doing BCD" << std::endl;
 	}
 	
 	void Chip8::_FX55() {
